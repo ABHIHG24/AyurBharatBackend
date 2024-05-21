@@ -28,14 +28,22 @@ router.post(
 router.put(
   "/updateProduct/:id",
   isAuthenticatedUser,
+  upload.single("image"),
   restrict("admin"),
   product.updateProduct
 );
-router.put(
+router.delete(
   "/deleteProduct/:id",
   isAuthenticatedUser,
   restrict("admin"),
   product.deleteProduct
+);
+
+router.get(
+  "/admin/products",
+  isAuthenticatedUser,
+  restrict("admin"),
+  product.getAllProductAdmin
 );
 
 router.put("/review", isAuthenticatedUser, product.createProductReview);

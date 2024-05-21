@@ -25,7 +25,6 @@ const login = catchAsyncErrors(async (req, res, next) => {
   } else {
     user = await userSchema.findOne({ username: UsernameOrEmail, role });
   }
-
   if (!user) {
     return next(new ErrorHandler("invalid credentials", 401));
   }
@@ -38,7 +37,7 @@ const login = catchAsyncErrors(async (req, res, next) => {
   sendToken(user, 200, res);
 });
 
-const userInsert = catchAsyncErrors(async (req, res) => {
+const userInsert = catchAsyncErrors(async (req, res, next) => {
   try {
     const {
       username,
@@ -57,7 +56,6 @@ const userInsert = catchAsyncErrors(async (req, res) => {
       phoneNumber: phoneNumber,
       password: password,
     });
-
     const uname = await userSchema.find({ username: username });
     if (uname.length > 0) {
       return next(
@@ -74,6 +72,7 @@ const userInsert = catchAsyncErrors(async (req, res) => {
 
     const storeUser = await userData.save();
     storeUser.password = undefined;
+
     res.status(201).json({ success: true, storeUser });
   } catch (err) {
     return next(new ErrorHandler("Internal Server Error", 500));
@@ -93,9 +92,7 @@ const forgetPassword = async (req, res, next) => {
     foundUser.passwordResetToken = token.passwordResetToken;
     await foundUser.save({ validateBeforeSave: false });
 
-    const resetUrl = `${req.protocol}://${req.get("host")}/resetPassword/${
-      token.resetToken
-    }`;
+    const resetUrl = `${req.protocol}://${req.hostname}:5173/resetPassword/${token.resetToken}`;
 
     const message = `Please reset your password using the link below:\n${resetUrl}\nThis reset link is valid for 10 minutes.`;
 
@@ -239,36 +236,29 @@ const getUsers = catchAsyncErrors(async (req, res, next) => {
 });
 
 const updateUserRole = catchAsyncErrors(async (req, res, next) => {
-  const { username, age, dateOfBirth, phoneNumber, email, role } = req.body;
+  const user = await userSchema.findById(req.params.id);
 
-  const newUserData = {
-    username,
-    age,
-    dateOfBirth,
-    phoneNumber,
-    email,
-    role,
-  };
+  if (!user) {
+    return next(
+      new ErrorHandler("User does not exist with ID: ", req.params.id)
+    );
+  }
 
-  const user = await userSchema.findByIdAndUpdate(req.user.id, newUserData, {
-    new: true,
-    runValidators: true,
-    useFindAndModify: false,
-  });
+  user.role = req.body.role;
+
+  await user.save();
 
   res.status(200).json({ success: true });
 });
 
 const deleteUser = catchAsyncErrors(async (req, res, next) => {
-  const user = await User.findById(req.params.id);
+  const result = await userSchema.deleteOne({ _id: req.params.id });
 
-  if (!user) {
+  if (result.deletedCount === 0) {
     return next(
-      new ErrorHandler("User does not exit with Id: ", req.params.id)
+      new ErrorHandler("User does not exist with ID: ", req.params.id)
     );
   }
-
-  await user.remove();
 
   res.status(200).json({ success: true });
 });

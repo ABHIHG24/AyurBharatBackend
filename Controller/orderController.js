@@ -36,6 +36,7 @@ const newOrders = catchAsyncErrors(async (req, res, next) => {
     paidAt: Date.now(),
     user: req.user._id,
   });
+  console.log(Orders);
   res.status(201).json({
     success: true,
     Orders,
@@ -43,6 +44,7 @@ const newOrders = catchAsyncErrors(async (req, res, next) => {
 });
 
 const getSingleOrder = catchAsyncErrors(async (req, res, next) => {
+  // console.log(req.params.id);
   const order = await Order.findById(req.params.id).populate(
     "user",
     "username email"
@@ -70,7 +72,7 @@ const getAllOrders = catchAsyncErrors(async (req, res, next) => {
   const orders = await Order.find();
 
   let totalAmount = 0;
-  orders.forEach((orders) => {
+  orders.forEach((order) => {
     totalAmount += order.totalPrice;
   });
 
@@ -88,17 +90,19 @@ const updateOrderStatus = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Order not found", 404));
   }
 
-  if (order.orderStatus === "Delivered") {
+  if (order.orderStatus === "delivered") {
     return next(new ErrorHandler("This order has already been delivered", 400));
   }
 
-  for (const orderItem of order.orderItems) {
-    await updateStock(orderItem.Product, orderItem.quantity);
+  if (req.body.status === "shipped") {
+    for (const orderItem of order.orderItems) {
+      await updateStock(orderItem.cartID, orderItem.amount);
+    }
   }
 
   order.orderStatus = req.body.status;
 
-  if (req.body.status === "Delivered") {
+  if (req.body.status === "delivered") {
     order.deliveredAt = Date.now();
   }
 
@@ -109,7 +113,8 @@ const updateOrderStatus = catchAsyncErrors(async (req, res, next) => {
   });
 });
 async function updateStock(id, quantity) {
-  const product = await Product.findById(id);
+  const productId = id.toString();
+  const product = await Product.findById(productId);
   product.stock -= quantity;
 
   await product.save({ validateBeforeSave: false });

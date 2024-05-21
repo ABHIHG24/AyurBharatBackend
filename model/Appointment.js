@@ -18,6 +18,10 @@ const appointmentSchema = new mongoose.Schema({
     required: true,
   },
   message: String,
+  appointmentStatus: {
+    type: String,
+    default: "pending",
+  },
 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);

@@ -35,7 +35,7 @@ const getAllProduct = catchAsyncErrors(async (req, res) => {
 });
 
 const postProduct = catchAsyncErrors(async (req, res, next) => {
-  const { title, description, company, category, price } = req.body;
+  const { title, description, company, category, price, stock } = req.body;
 
   req.body.user = req.user.id;
 
@@ -60,13 +60,28 @@ const postProduct = catchAsyncErrors(async (req, res, next) => {
 const updateProduct = catchAsyncErrors(async (req, res, next) => {
   let prod = await Product.findById(req.params.id);
   if (!prod) {
-    return next(new ErrorHandler("product not found", 500));
+    return next(new ErrorHandler("Product not found", 404));
   }
-  prod = await Product.findByIdAndUpdate(req.prams.id, req.body, {
+
+  // console.log(req.file);
+
+  const updatedData = {
+    title: req.body.title,
+    description: req.body.description,
+    company: req.body.company,
+    category: req.body.category,
+    price: req.body.price,
+    stock: req.body.stock,
+    // image: req.file.filename,
+  };
+  // console.log(updatedData);
+
+  prod = await Product.findByIdAndUpdate(req.params.id, updatedData, {
     new: true,
     runValidators: true,
     useFindAndModify: false,
   });
+
   res.status(200).json({
     success: true,
     product: prod,
@@ -84,10 +99,11 @@ const getSingleProduct = catchAsyncErrors(async (req, res, next) => {
 
 const deleteProduct = catchAsyncErrors(async (req, res, next) => {
   const prod = await Product.findById(req.params.id);
+
   if (!prod) {
     return next(new ErrorHandler("product not found", 500));
   }
-  await prod.remove();
+  await Product.deleteOne({ _id: prod._id });
   res
     .status(200)
     .json({ success: true, message: "product deleted successfully" });
@@ -143,7 +159,7 @@ const getAllReview = catchAsyncErrors(async (req, res) => {
   res.status(200).json({ success: true, reviews: product.reviews });
 });
 
-const deleteReview = catchAsyncErrors(async (req, res) => {
+const deleteReview = catchAsyncErrors(async (req, res, next) => {
   const product = await Product.findById(req.query.productId);
 
   if (!product) {
@@ -153,31 +169,43 @@ const deleteReview = catchAsyncErrors(async (req, res) => {
   const reviews = product.reviews.filter(
     (rev) => rev._id.toString() !== req.query.id.toString()
   );
-  let avg = 0;
 
-  let ratings = product.reviews.map((rev) => rev.rating);
-  ratings = ratings.reduce((acc, curr) => acc + curr, 0) / ratings.length;
+  const ratings = reviews.map((rev) => rev.rating);
 
-  const numOfReview = product.reviews.length;
+  let averageRating = 0;
+  if (ratings.length > 0) {
+    averageRating =
+      ratings.reduce((acc, curr) => acc + curr, 0) / ratings.length;
+  }
+
+  const numOfReviews = reviews.length;
 
   await Product.findByIdAndUpdate(
     req.query.productId,
     {
       reviews,
-      ratings,
-      numOfReview,
+      ratings: averageRating,
+      numOfReviews,
     },
     {
       new: true,
       runValidators: true,
-
       useFindAndModify: false,
     }
   );
 
   res
     .status(200)
-    .json({ success: true, message: "review deleted successfull" });
+    .json({ success: true, message: "Review deleted successfully" });
+});
+
+const getAllProductAdmin = catchAsyncErrors(async (req, res) => {
+  const products = await Product.find();
+
+  res.json({
+    success: true,
+    products,
+  });
 });
 
 module.exports = {
@@ -189,4 +217,5 @@ module.exports = {
   createProductReview,
   getAllReview,
   deleteReview,
+  getAllProductAdmin,
 };
