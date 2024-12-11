@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const payment = require("../controller/PaymentController");
+const payment = require("../Controller/PaymentController");
 const { restrict, isAuthenticatedUser } = require("../Middleware/auth");
 
 router.post("/payment/process", isAuthenticatedUser, payment.processPayment);

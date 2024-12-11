@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const user = require("../controller/userController");
+const user = require("../Controller/userController");
 const { restrict, isAuthenticatedUser } = require("../Middleware/auth");
 
 router.post("/insert", user.userInsert);
