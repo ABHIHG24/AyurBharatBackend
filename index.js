@@ -18,9 +18,8 @@ connectDatabase();
 
 app.use(
   cors({
-    // origin: "http://localhost:3000",
-    origin: true,
-    credentials: true,
+    origin: "https://ayurbharat.netlify.app", // Allow requests from your Netlify frontend
+    credentials: true, // Ensure cookies are included in the request (if needed)
   })
 );
 
